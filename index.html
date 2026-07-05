@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>DOMBOSCOFEST</title>
+    <style>
+        :root {
+            --primary: #4CAF50;
+            --danger: #f44336;
+            --bg: #f5f5f5;
+            --text: #333;
+        }
+        body {
+            font-family: Arial, sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            margin: 0;
+            padding: 15px;
+            /* Evita zoom ao dar duplo clique rápido nos botões */
+            touch-action: manipulation; 
+        }
+        h2 { text-align: center; margin-top: 0; }
+        
+        .produto {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: white;
+            padding: 12px;
+            margin-bottom: 8px;
+            border-radius: 8px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        .info { flex-grow: 1; }
+        .nome { font-weight: bold; font-size: 1.1em; display: block; }
+        .preco { color: #666; font-size: 0.9em; }
+        
+        .controles {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        button {
+            border: none;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            font-size: 1.5em;
+            font-weight: bold;
+            color: white;
+            cursor: pointer;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        .btn-menos { background-color: var(--danger); }
+        .btn-mais { background-color: var(--primary); }
+        .qtd { font-size: 1.3em; font-weight: bold; min-width: 25px; text-align: center; }
+
+        .resumo {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 20px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        .linha-resumo {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+            font-size: 1.2em;
+        }
+        .total-destaque {
+            font-size: 1.5em;
+            font-weight: bold;
+            color: var(--primary);
+        }
+        
+        input[type="number"] {
+            width: 100px;
+            padding: 8px;
+            font-size: 1.1em;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            text-align: right;
+        }
+
+        .btn-limpar {
+            width: 100%;
+            border-radius: 8px;
+            background-color: #607d8b;
+            padding: 15px;
+            margin-top: 15px;
+            font-size: 1.2em;
+            margin-bottom: 40px;
+        }
+    </style>
+</head>
+<body>
+
+    <h2>Caixa da Festa</h2>
+    <div id="lista-produtos"></div>
+
+    <div class="resumo">
+        <div class="linha-resumo total-destaque">
+            <span>Total da Venda:</span>
+            <span>R$ <span id="valor-total">0,00</span></span>
+        </div>
+        <hr>
+        <div class="linha-resumo">
+            <span>Dinheiro Recebido:</span>
+            <input type="number" id="valor-recebido" inputmode="decimal" placeholder="0.00" oninput="calcularTroco()">
+        </div>
+        <div class="linha-resumo">
+            <span>Troco:</span>
+            <strong id="valor-troco">R$ 0,00</strong>
+        </div>
+    </div>
+
+    <button class="btn-limpar" onclick="limparTudo()">Nova Venda / Limpar</button>
+
+    <script>
+        const produtos = [
+            { id: 'cerveja', nome: 'Cerveja', preco: 7.00, qtd: 0 },
+            { id: 'refrigerante', nome: 'Refrigerante', preco: 7.00, qtd: 0 },
+            { id: 'agua', nome: 'Água', preco: 4.00, qtd: 0 },
+            { id: 'quentao', nome: 'Quentão', preco: 10.00, qtd: 0 },
+            { id: 'cha', nome: 'Chá de amendoim', preco: 10.00, qtd: 0 },
+            { id: 'salgado', nome: 'Salgado', preco: 8.00, qtd: 0 },
+            { id: 'doce', nome: 'Doce', preco: 10.00, qtd: 0 },
+            { id: 'pescaria', nome: 'Pescaria', preco: 10.00, qtd: 0 }
+        ];
+
+        function renderizarProdutos() {
+            const container = document.getElementById('lista-produtos');
+            container.innerHTML = '';
+            
+            produtos.forEach((p, index) => {
+                const div = document.createElement('div');
+                div.className = 'produto';
+                div.innerHTML = `
+                    <div class="info">
+                        <span class="nome">${p.nome}</span>
+                        <span class="preco">R$ ${p.preco.toFixed(2).replace('.', ',')}</span>
+                    </div>
+                    <div class="controles">
+                        <button class="btn-menos" onclick="alterarQtd(${index}, -1)">-</button>
+                        <span class="qtd" id="qtd-${index}">${p.qtd}</span>
+                        <button class="btn-mais" onclick="alterarQtd(${index}, 1)">+</button>
+                    </div>
+                `;
+                container.appendChild(div);
+            });
+        }
+
+        function alterarQtd(index, valor) {
+            let novaQtd = produtos[index].qtd + valor;
+            if (novaQtd >= 0) {
+                produtos[index].qtd = novaQtd;
+                document.getElementById(`qtd-${index}`).innerText = novaQtd;
+                calcularTotal();
+            }
+        }
+
+        function calcularTotal() {
+            let total = 0;
+            produtos.forEach(p => total += (p.qtd * p.preco));
+            document.getElementById('valor-total').innerText = total.toFixed(2).replace('.', ',');
+            calcularTroco(total);
+        }
+
+        function calcularTroco(totalVenda = null) {
+            if (totalVenda === null) {
+                totalVenda = produtos.reduce((acc, p) => acc + (p.qtd * p.preco), 0);
+            }
+            
+            let recebido = parseFloat(document.getElementById('valor-recebido').value.replace(',', '.')) || 0;
+            let trocoEl = document.getElementById('valor-troco');
+
+            if (recebido === 0 || totalVenda === 0) {
+                trocoEl.innerText = "R$ 0,00";
+                trocoEl.style.color = 'inherit';
+                return;
+            }
+
+            let troco = recebido - totalVenda;
+
+            if (troco < 0) {
+                trocoEl.innerText = "Faltam R$ " + Math.abs(troco).toFixed(2).replace('.', ',');
+                trocoEl.style.color = 'var(--danger)';
+            } else {
+                trocoEl.innerText = "R$ " + troco.toFixed(2).replace('.', ',');
+                trocoEl.style.color = 'var(--primary)';
+            }
+        }
+
+        function limparTudo() {
+            produtos.forEach(p => p.qtd = 0);
+            document.getElementById('valor-recebido').value = '';
+            renderizarProdutos();
+            calcularTotal();
+            window.scrollTo(0, 0); // Volta pro topo
+        }
+
+        // Inicializa o app
+        renderizarProdutos();
+    </script>
+</body>
+</html>
